@@ -2,6 +2,16 @@
 
 Lokale Webapp für Magnetfeld-/Kompassmessung im Browser.
 
+## Hinweis zur Messung
+
+Auf dem iPhone liefert Safari aktuell keine echten Magnetometerwerte in µT.  
+Die Webapp nutzt deshalb dort nur den Kompasswinkel als Fallback.
+
+Angezeigt werden auf dem iPhone daher keine X/Y/Z-Magnetfeldwerte, sondern nur Änderungen im Kompasswinkel.  
+Das kann für einfache Störungstests genutzt werden, ist aber keine echte Magnetfeldmessung.
+
+Android wurde noch nicht getestet.
+
 ## Start
 
 Auf dem iPhone diesen Link öffnen:
