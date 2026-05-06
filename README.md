@@ -26,4 +26,4 @@ Keine Serverübertragung. CSV bleibt lokal.
 
 Auf dem iPhone öffnen
 
-![URL](dmagnetfeld-messung-iphone-qr.png)
+![URL](magnetfeld-messung-iphone-qr.png)
