@@ -4,6 +4,10 @@ Lokale Webapp für Magnetfeld-/Kompassmessung im Browser.
 
 ## Start
 
+Auf dem iPhone diesen Link öffnen:
+https://tbr-brd.github.io/magnetfeld-messung-iphone/
+
+https lokal:
 ```bash
 python3 -m http.server 8080
 ```
