@@ -1,0 +1,9 @@
+{
+  "name": "magnetfeld-messung-iphone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lokale Webapp für Magnetfeld-/Kompassmessung.",
+  "scripts": {
+    "start": "python3 -m http.server 8080"
+  }
+}

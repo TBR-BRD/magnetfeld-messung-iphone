@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Magnetfeld">
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <path d="M166 144v128a90 90 0 0 0 180 0V144h-70v128a20 20 0 0 1-40 0V144z" fill="none" stroke="#f9fafb" stroke-width="36" stroke-linejoin="round"/>
+  <path d="M166 144h70M276 144h70M166 208h70M276 208h70" stroke="#60a5fa" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="256" cy="374" r="18" fill="#60a5fa"/>
+</svg>

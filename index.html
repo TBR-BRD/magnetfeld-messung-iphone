@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Magnetfeld">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Magnetfeld-Messung</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel-2: rgba(255,255,255,.12);
+      --text: #f9fafb;
+      --muted: #cbd5e1;
+      --border: rgba(255,255,255,.18);
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --accent: #93c5fd;
+      --shadow: 0 20px 50px rgba(0,0,0,.25);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f3f4f6;
+        --panel: rgba(255,255,255,.86);
+        --panel-2: rgba(255,255,255,.95);
+        --text: #111827;
+        --muted: #475569;
+        --border: rgba(15,23,42,.14);
+        --shadow: 0 18px 45px rgba(15,23,42,.12);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,.32), transparent 30rem),
+        radial-gradient(circle at bottom right, rgba(16,185,129,.22), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    }
+    main { max-width: 980px; margin: 0 auto; }
+    header {
+      display: grid;
+      gap: 10px;
+      margin: 10px 0 16px;
+    }
+    h1 { margin: 0; font-size: clamp(1.65rem, 6vw, 3.2rem); letter-spacing: -.04em; line-height: 1; }
+    h2 { margin: 0 0 12px; font-size: 1rem; letter-spacing: -.01em; }
+    p { margin: 0; }
+    .lead { color: var(--muted); max-width: 70ch; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 760px) {
+      .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+      .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .card.tight { padding: 13px; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    button, .button-like {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 11px 15px;
+      font: inherit;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--panel-2);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button.primary {
+      background: linear-gradient(135deg, rgba(59,130,246,.95), rgba(16,185,129,.92));
+      color: white;
+      border-color: rgba(255,255,255,.22);
+    }
+    button.danger { background: rgba(251,113,133,.18); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .readout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (min-width: 560px) { .readout { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .metric {
+      background: rgba(0,0,0,.12);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+      min-height: 74px;
+    }
+    @media (prefers-color-scheme: light) { .metric { background: rgba(255,255,255,.55); } }
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: .76rem;
+      margin-bottom: 4px;
+    }
+    .value {
+      display: block;
+      font-size: clamp(1.25rem, 4.7vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -.035em;
+      white-space: nowrap;
+    }
+    .unit { color: var(--muted); font-size: .8rem; margin-left: 2px; font-weight: 650; }
+    .status-line {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: rgba(255,255,255,.06);
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .dot { width: 9px; height: 9px; border-radius: 99px; background: var(--muted); display: inline-block; }
+    .dot.good { background: var(--good); }
+    .dot.warn { background: var(--warn); }
+    .dot.bad { background: var(--bad); }
+    .notice {
+      border-left: 4px solid var(--warn);
+      padding: 11px 12px;
+      background: rgba(251,191,36,.12);
+      border-radius: 14px;
+      color: var(--text);
+    }
+    .notice.good { border-left-color: var(--good); background: rgba(52,211,153,.12); }
+    .notice.bad { border-left-color: var(--bad); background: rgba(251,113,133,.12); }
+    canvas {
+      width: 100%;
+      height: 270px;
+      display: block;
+      background: rgba(0,0,0,.18);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      touch-action: none;
+    }
+    @media (prefers-color-scheme: light) { canvas { background: rgba(255,255,255,.7); } }
+    details {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,.06);
+    }
+    details + details { margin-top: 10px; }
+    summary { cursor: pointer; font-weight: 800; }
+    ol, ul { padding-left: 1.25rem; }
+    li { margin: 7px 0; }
+    .settings {
+      display: grid;
+      gap: 12px;
+    }
+    label.range {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    input[type="range"] { width: 100%; }
+    .small { font-size: .86rem; color: var(--muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Magnetfeld-Messung</h1>
+      <p class="lead">Webapp zum Testen, ob ein Smartphone beim Passieren eines Eingangs magnetische Störungen erkennt. Auf dem iPhone ist das ein Kompass-/Orientierungs-Fallback, keine garantierte Rohmessung in µT.</p>
+      <div class="status-line">
+        <span class="pill"><span id="secureDot" class="dot"></span><span id="secureText">Secure Context wird geprüft…</span></span>
+        <span class="pill"><span id="supportDot" class="dot"></span><span id="supportText">Sensor-Support wird geprüft…</span></span>
+        <span class="pill"><span id="privacyDot" class="dot good"></span>lokal, kein Upload</span>
+      </div>
+    </header>
+
+    <section id="compatNotice" class="notice">
+      Starte die Messung über den Button. Auf iOS muss die Sensorfreigabe aus einer echten Nutzeraktion kommen.
+    </section>
+
+    <section class="card">
+      <div class="controls">
+        <button id="startBtn" class="primary">Messung starten</button>
+        <button id="stopBtn" class="danger" disabled>Stop</button>
+        <button id="baselineBtn" disabled>Nullpunkt setzen</button>
+        <button id="csvBtn" disabled>CSV herunterladen</button>
+        <button id="clearBtn">Daten löschen</button>
+      </div>
+    </section>
+
+    <section class="grid cols-2" style="margin-top:12px;">
+      <div class="card">
+        <h2>Live-Werte</h2>
+        <div class="readout">
+          <div class="metric">
+            <span class="label">Messmodus</span>
+            <span id="mode" class="value" style="font-size:1.2rem;">–</span>
+          </div>
+          <div class="metric">
+            <span class="label">|B| Feldstärke</span>
+            <span class="value"><span id="bVal">–</span><span class="unit">µT</span></span>
+          </div>
+          <div class="metric">
+            <span class="label">Δ zum Nullpunkt</span>
+            <span class="value"><span id="deltaVal">–</span><span class="unit" id="deltaUnit">µT</span></span>
+          </div>
+          <div class="metric">
+            <span class="label">Abtastrate</span>
+            <span class="value"><span id="rateVal">0</span><span class="unit">Hz</span></span>
+          </div>
+        </div>
+        <div class="readout" style="margin-top:10px;">
+          <div class="metric">
+            <span class="label">X</span>
+            <span class="value"><span id="xVal">–</span><span class="unit">µT</span></span>
+          </div>
+          <div class="metric">
+            <span class="label">Y</span>
+            <span class="value"><span id="yVal">–</span><span class="unit">µT</span></span>
+          </div>
+          <div class="metric">
+            <span class="label">Z</span>
+            <span class="value"><span id="zVal">–</span><span class="unit">µT</span></span>
+          </div>
+          <div class="metric">
+            <span class="label">Kompass</span>
+            <span class="value"><span id="headingVal">–</span><span class="unit">°</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Erkennung</h2>
+        <div id="alarmBox" class="notice good">
+          Kein auffälliges Signal.
+        </div>
+        <div class="settings" style="margin-top:12px;">
+          <label class="range">Schwellwert für echte Magnetometerwerte: <strong><span id="utThresholdLabel">8</span> µT</strong>
+            <input id="utThreshold" type="range" min="1" max="80" step="1" value="8">
+          </label>
+          <label class="range">Schwellwert für iPhone-Fallback: <strong><span id="degThresholdLabel">8</span>° Kompassabweichung</strong>
+            <input id="degThreshold" type="range" min="1" max="60" step="1" value="8">
+          </label>
+          <label class="range">Gewünschte Sensorfrequenz, falls Magnetometer API vorhanden: <strong><span id="freqLabel">30</span> Hz</strong>
+            <input id="freq" type="range" min="5" max="60" step="5" value="30">
+          </label>
+        </div>
+        <p class="small" style="margin-top:12px;">Für den Scanner-Test das iPhone möglichst gleich ausrichten. Der Kompass-Fallback reagiert sonst auch auf Drehungen deiner Hand.</p>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:12px;">
+      <h2 id="chartTitle">Verlauf</h2>
+      <canvas id="chart" width="1400" height="520"></canvas>
+      <p id="chartHint" class="small" style="margin-top:8px;">Noch keine Daten.</p>
+    </section>
+
+    <section class="grid cols-2" style="margin-top:12px;">
+      <div class="card tight">
+        <h2>Orientierungsdaten</h2>
+        <div class="readout">
+          <div class="metric"><span class="label">Alpha</span><span class="value"><span id="alphaVal">–</span><span class="unit">°</span></span></div>
+          <div class="metric"><span class="label">Beta</span><span class="value"><span id="betaVal">–</span><span class="unit">°</span></span></div>
+          <div class="metric"><span class="label">Gamma</span><span class="value"><span id="gammaVal">–</span><span class="unit">°</span></span></div>
+          <div class="metric"><span class="label">Genauigkeit</span><span class="value"><span id="accuracyVal">–</span><span class="unit">°</span></span></div>
+        </div>
+      </div>
+      <div class="card tight">
+        <h2>Messprotokoll</h2>
+        <p class="small">Samples: <span id="sampleCount">0</span></p>
+        <p class="small">Letztes Sample: <span id="lastSample">–</span></p>
+        <p class="small">Nullpunkt: <span id="baselineText">nicht gesetzt</span></p>
+        <p class="small">Hinweis: Die CSV bleibt lokal im Browser und wird erst beim Download als Datei erzeugt.</p>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:12px;">
+      <details open>
+        <summary>Kurzanleitung für den Test an Warensicherungs-Gates</summary>
+        <ol>
+          <li>Webapp über HTTPS öffnen und auf <strong>Messung starten</strong> tippen.</li>
+          <li>Sensorzugriff erlauben. Beim iPhone kann die Abfrage „Bewegung & Ausrichtung“ heißen.</li>
+          <li>Ein paar Meter vom Gate entfernt das iPhone ruhig halten und <strong>Nullpunkt setzen</strong> drücken.</li>
+          <li>Langsam durch das Gate gehen, möglichst ohne das iPhone zu drehen.</li>
+          <li>Danach <strong>CSV herunterladen</strong> und im Diagramm nach Peaks suchen.</li>
+        </ol>
+      </details>
+      <details>
+        <summary>Warum zeigt mein iPhone keine X/Y/Z-Werte?</summary>
+        <p class="small" style="margin-top:10px;">iOS Safari stellt in normalen Webseiten meist keinen Roh-Magnetometer als Generic Sensor API bereit. Diese App nutzt dann Kompass- und Orientierungswerte als indirekten Indikator. Für echte µT-Rohdaten auf dem iPhone wäre eine native iOS-App mit Core Motion besser.</p>
+      </details>
+      <details>
+        <summary>Datenschutz</summary>
+        <p class="small" style="margin-top:10px;">Diese Demo sendet nichts an einen Server. Alle Messwerte bleiben im Arbeitsspeicher des Browsers, bis du sie als CSV herunterlädst oder die Seite schließt.</p>
+      </details>
+    </section>
+  </main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    secureDot: $("secureDot"), secureText: $("secureText"),
+    supportDot: $("supportDot"), supportText: $("supportText"),
+    compatNotice: $("compatNotice"),
+    startBtn: $("startBtn"), stopBtn: $("stopBtn"), baselineBtn: $("baselineBtn"), csvBtn: $("csvBtn"), clearBtn: $("clearBtn"),
+    mode: $("mode"), bVal: $("bVal"), deltaVal: $("deltaVal"), deltaUnit: $("deltaUnit"), rateVal: $("rateVal"),
+    xVal: $("xVal"), yVal: $("yVal"), zVal: $("zVal"), headingVal: $("headingVal"),
+    alphaVal: $("alphaVal"), betaVal: $("betaVal"), gammaVal: $("gammaVal"), accuracyVal: $("accuracyVal"),
+    alarmBox: $("alarmBox"),
+    utThreshold: $("utThreshold"), utThresholdLabel: $("utThresholdLabel"),
+    degThreshold: $("degThreshold"), degThresholdLabel: $("degThresholdLabel"),
+    freq: $("freq"), freqLabel: $("freqLabel"),
+    chart: $("chart"), chartTitle: $("chartTitle"), chartHint: $("chartHint"),
+    sampleCount: $("sampleCount"), lastSample: $("lastSample"), baselineText: $("baselineText"),
+  };
+
+  const ctx = els.chart.getContext("2d");
+  const state = {
+    running: false,
+    mode: "idle",
+    modeLabel: "–",
+    sensor: null,
+    startMs: 0,
+    records: [],
+    recent: [],
+    chartSamples: [],
+    last: null,
+    baseline: null,
+    alarmUntil: 0,
+    maxRecords: 20000,
+    maxChartSamples: 900,
+    preferRaw: true,
+    gotRaw: false,
+    gotOrientation: false,
+    orientationListener: null,
+    orientationAbsListener: null
+  };
+
+  function setDot(el, status) {
+    el.className = "dot" + (status ? " " + status : "");
+  }
+
+  function setNotice(kind, text) {
+    els.compatNotice.className = "notice" + (kind ? " " + kind : "");
+    els.compatNotice.textContent = text;
+  }
+
+  function fmt(n, digits = 1) {
+    return Number.isFinite(n) ? n.toFixed(digits) : "–";
+  }
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  function hypot3(x, y, z) {
+    if (![x, y, z].every(Number.isFinite)) return null;
+    return Math.sqrt(x*x + y*y + z*z);
+  }
+
+  function angleDelta(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    let d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  function escapeCsv(value) {
+    if (value === null || value === undefined) return "";
+    const s = String(value);
+    return /[",\n\r;]/.test(s) ? '"' + s.replaceAll('"', '""') + '"' : s;
+  }
+
+  function updateCapabilityBadges() {
+    if (window.isSecureContext) {
+      setDot(els.secureDot, "good");
+      els.secureText.textContent = "HTTPS / Secure Context";
+    } else {
+      setDot(els.secureDot, "bad");
+      els.secureText.textContent = "Kein Secure Context";
+    }
+
+    const hasMag = "Magnetometer" in window;
+    const hasUncal = "UncalibratedMagnetometer" in window;
+    const hasOri = "DeviceOrientationEvent" in window;
+    const iosCompass = hasOri;
+
+    if (hasMag || hasUncal) {
+      setDot(els.supportDot, "good");
+      els.supportText.textContent = "Magnetometer API gefunden";
+    } else if (iosCompass) {
+      setDot(els.supportDot, "warn");
+      els.supportText.textContent = "Fallback: DeviceOrientation/Kompass";
+    } else {
+      setDot(els.supportDot, "bad");
+      els.supportText.textContent = "Keine passende Web-Sensor-API";
+    }
+
+    if (!window.isSecureContext) {
+      setNotice("bad", "Diese Web-Sensoren funktionieren normalerweise nur über HTTPS. Lade die App über GitHub Pages, Netlify oder einen anderen HTTPS-Host.");
+    } else if (!(hasMag || hasUncal) && hasOri) {
+      setNotice("", "Auf diesem Browser wurde kein Roh-Magnetometer gefunden. Die App versucht den iPhone-kompatiblen Kompass-/Orientierungs-Fallback.");
+    } else if (hasMag || hasUncal) {
+      setNotice("good", "Roh-Magnetometer scheint verfügbar. Starte die Messung, um x/y/z in µT zu lesen.");
+    }
+  }
+
+  async function requestOrientationPermission() {
+    if (!("DeviceOrientationEvent" in window)) return "unavailable";
+    const DOE = window.DeviceOrientationEvent;
+
+    if (typeof DOE.requestPermission === "function") {
+      try {
+        const res = await DOE.requestPermission(true);
+        return res;
+      } catch (errWithAbsolute) {
+        try {
+          const res = await DOE.requestPermission();
+          return res;
+        } catch (err) {
+          throw err;
+        }
+      }
+    }
+    return "granted";
+  }
+
+  async function requestMotionPermissionOptional() {
+    if (!("DeviceMotionEvent" in window)) return;
+    const DME = window.DeviceMotionEvent;
+    if (typeof DME.requestPermission === "function") {
+      try { await DME.requestPermission(); } catch (e) { /* optional */ }
+    }
+  }
+
+  async function tryStartRawMagnetometer() {
+    const SensorClass = window.Magnetometer || window.UncalibratedMagnetometer;
+    if (!SensorClass || !window.isSecureContext) return false;
+
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permission = await navigator.permissions.query({ name: "magnetometer" });
+          if (permission.state === "denied") throw new Error("Magnetometer permission denied");
+        } catch (e) {
+          // Some browsers do not expose this permission name; continue and let sensor.start() decide.
+        }
+      }
+
+      const frequency = Number(els.freq.value) || 30;
+      const sensor = new SensorClass({ frequency });
+      sensor.addEventListener("reading", () => {
+        const record = makeRecord({
+          source: SensorClass.name || "Magnetometer",
+          x: sensor.x,
+          y: sensor.y,
+          z: sensor.z,
+          sensorTimestamp: sensor.timestamp
+        });
+        ingestRecord(record);
+      });
+      sensor.addEventListener("error", (event) => {
+        const name = event && event.error ? event.error.name : "SensorError";
+        setNotice("bad", "Magnetometer-Fehler: " + name + ". Es wird der Kompass-Fallback versucht.");
+        tryStartOrientationFallback();
+      });
+      sensor.start();
+      state.sensor = sensor;
+      state.mode = "raw";
+      state.modeLabel = SensorClass.name || "Magnetometer";
+      state.gotRaw = true;
+      updateModeLabel();
+      return true;
+    } catch (err) {
+      console.warn("Raw magnetometer not available:", err);
+      return false;
+    }
+  }
+
+  async function tryStartOrientationFallback() {
+    if (!("DeviceOrientationEvent" in window)) return false;
+
+    await requestMotionPermissionOptional();
+    const permission = await requestOrientationPermission();
+    if (permission !== "granted") {
+      throw new Error("Sensorfreigabe nicht erteilt: " + permission);
+    }
+
+    const handler = (event) => {
+      const heading = Number.isFinite(event.webkitCompassHeading)
+        ? event.webkitCompassHeading
+        : (event.absolute && Number.isFinite(event.alpha) ? (360 - event.alpha) % 360 : null);
+
+      const record = makeRecord({
+        source: event.type === "deviceorientationabsolute" ? "deviceorientationabsolute" : "deviceorientation",
+        heading,
+        compassAccuracy: Number.isFinite(event.webkitCompassAccuracy) ? event.webkitCompassAccuracy : null,
+        alpha: Number.isFinite(event.alpha) ? event.alpha : null,
+        beta: Number.isFinite(event.beta) ? event.beta : null,
+        gamma: Number.isFinite(event.gamma) ? event.gamma : null,
+        absolute: !!event.absolute
+      });
+
+      if (!state.gotRaw) ingestRecord(record);
+    };
+
+    state.orientationListener = handler;
+    state.orientationAbsListener = handler;
+    window.addEventListener("deviceorientation", handler, true);
+    window.addEventListener("deviceorientationabsolute", handler, true);
+    state.mode = "orientation";
+    state.modeLabel = "Kompass-Fallback";
+    state.gotOrientation = true;
+    updateModeLabel();
+    return true;
+  }
+
+  function makeRecord(fields) {
+    const t = performance.now();
+    const b = hypot3(fields.x, fields.y, fields.z);
+    const elapsedMs = state.startMs ? t - state.startMs : 0;
+
+    let deltaB = null;
+    let deltaHeading = null;
+    if (state.baseline) {
+      if (Number.isFinite(b) && Number.isFinite(state.baseline.b)) deltaB = Math.abs(b - state.baseline.b);
+      if (Number.isFinite(fields.heading) && Number.isFinite(state.baseline.heading)) {
+        deltaHeading = angleDelta(fields.heading, state.baseline.heading);
+      }
+    }
+
+    const thresholdUt = Number(els.utThreshold.value);
+    const thresholdDeg = Number(els.degThreshold.value);
+    const anomaly = (Number.isFinite(deltaB) && deltaB >= thresholdUt)
+      || (Number.isFinite(deltaHeading) && deltaHeading >= thresholdDeg);
+
+    return {
+      iso: nowIso(),
+      t,
+      elapsedMs,
+      source: fields.source || "",
+      x: Number.isFinite(fields.x) ? fields.x : null,
+      y: Number.isFinite(fields.y) ? fields.y : null,
+      z: Number.isFinite(fields.z) ? fields.z : null,
+      b,
+      deltaB,
+      heading: Number.isFinite(fields.heading) ? fields.heading : null,
+      deltaHeading,
+      alpha: Number.isFinite(fields.alpha) ? fields.alpha : null,
+      beta: Number.isFinite(fields.beta) ? fields.beta : null,
+      gamma: Number.isFinite(fields.gamma) ? fields.gamma : null,
+      compassAccuracy: Number.isFinite(fields.compassAccuracy) ? fields.compassAccuracy : null,
+      absolute: !!fields.absolute,
+      sensorTimestamp: Number.isFinite(fields.sensorTimestamp) ? fields.sensorTimestamp : null,
+      anomaly
+    };
+  }
+
+  function ingestRecord(record) {
+    if (!state.running) return;
+
+    state.last = record;
+    state.records.push(record);
+    if (state.records.length > state.maxRecords) state.records.shift();
+
+    state.chartSamples.push(record);
+    if (state.chartSamples.length > state.maxChartSamples) state.chartSamples.shift();
+
+    const t = performance.now();
+    state.recent.push(t);
+    state.recent = state.recent.filter(v => t - v <= 2000);
+
+    if (!state.baseline && (Number.isFinite(record.b) || Number.isFinite(record.heading))) {
+      state.baseline = {
+        b: record.b,
+        heading: record.heading,
+        iso: record.iso,
+        source: record.source
+      };
+    }
+
+    if (record.anomaly) state.alarmUntil = performance.now() + 1400;
+    updateUi();
+  }
+
+  function updateModeLabel() {
+    els.mode.textContent = state.modeLabel;
+  }
+
+  function updateUi() {
+    const r = state.last;
+    if (!r) return;
+
+    els.bVal.textContent = fmt(r.b, 1);
+    els.xVal.textContent = fmt(r.x, 1);
+    els.yVal.textContent = fmt(r.y, 1);
+    els.zVal.textContent = fmt(r.z, 1);
+    els.headingVal.textContent = fmt(r.heading, 1);
+
+    els.alphaVal.textContent = fmt(r.alpha, 1);
+    els.betaVal.textContent = fmt(r.beta, 1);
+    els.gammaVal.textContent = fmt(r.gamma, 1);
+    els.accuracyVal.textContent = fmt(r.compassAccuracy, 0);
+
+    if (Number.isFinite(r.deltaB)) {
+      els.deltaVal.textContent = fmt(r.deltaB, 1);
+      els.deltaUnit.textContent = "µT";
+    } else if (Number.isFinite(r.deltaHeading)) {
+      els.deltaVal.textContent = fmt(r.deltaHeading, 1);
+      els.deltaUnit.textContent = "°";
+    } else {
+      els.deltaVal.textContent = "–";
+      els.deltaUnit.textContent = state.mode === "orientation" ? "°" : "µT";
+    }
+
+    const hz = state.recent.length > 1 ? state.recent.length / 2 : 0;
+    els.rateVal.textContent = hz.toFixed(1);
+    els.sampleCount.textContent = String(state.records.length);
+    els.lastSample.textContent = r.iso.replace("T", " ").replace("Z", " UTC");
+    els.csvBtn.disabled = state.records.length === 0;
+
+    if (state.baseline) {
+      const parts = [];
+      if (Number.isFinite(state.baseline.b)) parts.push("|B| " + fmt(state.baseline.b, 1) + " µT");
+      if (Number.isFinite(state.baseline.heading)) parts.push("Kompass " + fmt(state.baseline.heading, 1) + "°");
+      els.baselineText.textContent = parts.join(", ") || "gesetzt";
+    }
+
+    const alarmActive = performance.now() < state.alarmUntil;
+    els.alarmBox.className = "notice " + (alarmActive ? "bad" : "good");
+    els.alarmBox.textContent = alarmActive
+      ? "Auffällige Abweichung erkannt. Prüfe den Peak im Verlauf."
+      : "Kein auffälliges Signal.";
+
+    drawChart();
+  }
+
+  function setBaseline() {
+    if (!state.last) return;
+    state.baseline = {
+      b: state.last.b,
+      heading: state.last.heading,
+      iso: state.last.iso,
+      source: state.last.source
+    };
+    state.alarmUntil = 0;
+    updateUi();
+  }
+
+  function stopMeasurement() {
+    state.running = false;
+    if (state.sensor && state.sensor.stop) {
+      try { state.sensor.stop(); } catch (e) { /* ignore */ }
+    }
+    state.sensor = null;
+    if (state.orientationListener) window.removeEventListener("deviceorientation", state.orientationListener, true);
+    if (state.orientationAbsListener) window.removeEventListener("deviceorientationabsolute", state.orientationAbsListener, true);
+    state.orientationListener = null;
+    state.orientationAbsListener = null;
+
+    els.startBtn.disabled = false;
+    els.stopBtn.disabled = true;
+    els.baselineBtn.disabled = !state.last;
+    els.mode.textContent = state.modeLabel || "gestoppt";
+  }
+
+  async function startMeasurement() {
+    state.running = true;
+    state.startMs = performance.now();
+    state.recent = [];
+    state.last = null;
+    state.gotRaw = false;
+    state.gotOrientation = false;
+    state.mode = "starting";
+    state.modeLabel = "startet…";
+    updateModeLabel();
+
+    els.startBtn.disabled = true;
+    els.stopBtn.disabled = false;
+    els.baselineBtn.disabled = false;
+    setNotice("", "Sensorfreigabe wird angefragt. Auf iOS muss diese Aktion direkt durch den Button-Klick ausgelöst werden.");
+
+    try {
+      const rawStarted = await tryStartRawMagnetometer();
+      if (!rawStarted) {
+        await tryStartOrientationFallback();
+      }
+      setNotice("good", "Messung läuft. Setze einen Nullpunkt in ruhiger Umgebung und gehe dann langsam durch den Eingang.");
+    } catch (err) {
+      stopMeasurement();
+      state.modeLabel = "nicht verfügbar";
+      updateModeLabel();
+      setNotice("bad", "Messung konnte nicht gestartet werden: " + (err && err.message ? err.message : err));
+    }
+  }
+
+  function clearData() {
+    state.records = [];
+    state.chartSamples = [];
+    state.last = null;
+    state.baseline = null;
+    state.alarmUntil = 0;
+    els.sampleCount.textContent = "0";
+    els.lastSample.textContent = "–";
+    els.baselineText.textContent = "nicht gesetzt";
+    els.csvBtn.disabled = true;
+    els.bVal.textContent = els.xVal.textContent = els.yVal.textContent = els.zVal.textContent = "–";
+    els.headingVal.textContent = els.alphaVal.textContent = els.betaVal.textContent = els.gammaVal.textContent = "–";
+    els.accuracyVal.textContent = els.deltaVal.textContent = "–";
+    drawChart();
+  }
+
+  function downloadCsv() {
+    if (!state.records.length) return;
+    const headers = [
+      "iso_time","elapsed_ms","source","x_uT","y_uT","z_uT","b_uT","deltaB_uT",
+      "heading_deg","deltaHeading_deg","alpha_deg","beta_deg","gamma_deg",
+      "compassAccuracy_deg","absolute","sensorTimestamp","anomaly"
+    ];
+    const lines = [headers.join(";")];
+    for (const r of state.records) {
+      lines.push([
+        r.iso,
+        r.elapsedMs.toFixed(1),
+        r.source,
+        Number.isFinite(r.x) ? r.x.toFixed(5) : "",
+        Number.isFinite(r.y) ? r.y.toFixed(5) : "",
+        Number.isFinite(r.z) ? r.z.toFixed(5) : "",
+        Number.isFinite(r.b) ? r.b.toFixed(5) : "",
+        Number.isFinite(r.deltaB) ? r.deltaB.toFixed(5) : "",
+        Number.isFinite(r.heading) ? r.heading.toFixed(5) : "",
+        Number.isFinite(r.deltaHeading) ? r.deltaHeading.toFixed(5) : "",
+        Number.isFinite(r.alpha) ? r.alpha.toFixed(5) : "",
+        Number.isFinite(r.beta) ? r.beta.toFixed(5) : "",
+        Number.isFinite(r.gamma) ? r.gamma.toFixed(5) : "",
+        Number.isFinite(r.compassAccuracy) ? r.compassAccuracy.toFixed(5) : "",
+        r.absolute,
+        Number.isFinite(r.sensorTimestamp) ? r.sensorTimestamp : "",
+        r.anomaly
+      ].map(escapeCsv).join(";"));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = URL.createObjectURL(blob);
+    a.download = "magnetfeld-messung-" + stamp + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 1000);
+  }
+
+  function drawChart() {
+    const canvas = els.chart;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(148,163,184,.35)";
+    ctx.beginPath();
+    for (let i = 0; i <= 4; i++) {
+      const y = 40 + i * (h - 80) / 4;
+      ctx.moveTo(50, y);
+      ctx.lineTo(w - 22, y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || "#94a3b8";
+    ctx.font = "24px ui-sans-serif, system-ui, sans-serif";
+
+    const samples = state.chartSamples;
+    if (!samples.length) {
+      ctx.fillText("Noch keine Daten", 50, 78);
+      els.chartHint.textContent = "Noch keine Daten.";
+      return;
+    }
+
+    const hasB = samples.some(s => Number.isFinite(s.b));
+    const values = samples.map(s => {
+      if (hasB) return Number.isFinite(s.b) ? s.b : null;
+      if (Number.isFinite(s.deltaHeading)) return s.deltaHeading;
+      if (Number.isFinite(s.heading)) return s.heading;
+      if (Number.isFinite(s.alpha)) return s.alpha;
+      return null;
+    });
+
+    let numeric = values.filter(Number.isFinite);
+    if (!numeric.length) return;
+
+    let min = Math.min(...numeric);
+    let max = Math.max(...numeric);
+    if (max - min < 1) { min -= 0.5; max += 0.5; }
+    const pad = Math.max((max - min) * 0.12, hasB ? 1 : 2);
+    min -= pad; max += pad;
+
+    const left = 50, right = w - 22, top = 36, bottom = h - 54;
+    const xScale = (i) => {
+      if (samples.length === 1) return left;
+      return left + (i / (samples.length - 1)) * (right - left);
+    };
+    const yScale = (v) => bottom - ((v - min) / (max - min)) * (bottom - top);
+
+    ctx.fillText(max.toFixed(1), 8, top + 8);
+    ctx.fillText(min.toFixed(1), 8, bottom);
+
+    if (hasB && state.baseline && Number.isFinite(state.baseline.b)) {
+      const y = yScale(state.baseline.b);
+      ctx.strokeStyle = "rgba(251,191,36,.75)";
+      ctx.setLineDash([12, 10]);
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(147,197,253,.95)";
+    ctx.beginPath();
+    let started = false;
+    values.forEach((v, i) => {
+      if (!Number.isFinite(v)) return;
+      const x = xScale(i);
+      const y = yScale(v);
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(251,113,133,.95)";
+    samples.forEach((s, i) => {
+      if (!s.anomaly) return;
+      const v = values[i];
+      if (!Number.isFinite(v)) return;
+      ctx.beginPath();
+      ctx.arc(xScale(i), yScale(v), 7, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    const label = hasB ? "|B| in µT" : "Kompass/Orientierung in Grad";
+    els.chartTitle.textContent = "Verlauf: " + label;
+    els.chartHint.textContent = "Anzeige der letzten " + samples.length + " Samples. Rote Punkte markieren Schwellwertüberschreitungen.";
+  }
+
+  function bindUi() {
+    els.startBtn.addEventListener("click", startMeasurement);
+    els.stopBtn.addEventListener("click", stopMeasurement);
+    els.baselineBtn.addEventListener("click", setBaseline);
+    els.csvBtn.addEventListener("click", downloadCsv);
+    els.clearBtn.addEventListener("click", clearData);
+
+    els.utThreshold.addEventListener("input", () => {
+      els.utThresholdLabel.textContent = els.utThreshold.value;
+      updateUi();
+    });
+    els.degThreshold.addEventListener("input", () => {
+      els.degThresholdLabel.textContent = els.degThreshold.value;
+      updateUi();
+    });
+    els.freq.addEventListener("input", () => {
+      els.freqLabel.textContent = els.freq.value;
+    });
+
+    window.addEventListener("resize", drawChart);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && state.running && state.mode === "orientation") {
+        setNotice("", "Hinweis: iOS kann Web-Sensordaten im Hintergrund anhalten. Für Messungen die App im Vordergrund lassen.");
+      }
+    });
+  }
+
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+    try { await navigator.serviceWorker.register("./sw.js"); } catch (e) { /* optional */ }
+  }
+
+  updateCapabilityBadges();
+  bindUi();
+  drawChart();
+  registerServiceWorker();
+})();
+</script>
+</body>
+</html>
