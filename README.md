@@ -23,3 +23,7 @@ Keine Serverübertragung. CSV bleibt lokal.
   <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174">
 </a>
 <br>
+
+Auf dem iPhone öffnen
+
+![URL](dmagnetfeld-messung-iphone-qr.png)
