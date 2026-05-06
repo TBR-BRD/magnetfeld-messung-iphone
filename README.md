@@ -10,6 +10,8 @@ Die Webapp nutzt deshalb dort nur den Kompasswinkel als Fallback.
 Angezeigt werden auf dem iPhone daher keine X/Y/Z-Magnetfeldwerte, sondern nur Änderungen im Kompasswinkel.  
 Das kann für einfache Störungstests genutzt werden, ist aber keine echte Magnetfeldmessung.
 
+![GUI](Magnetfeld-Messung-1.png)
+
 ## Android / T-Phone 3
 
 Auf Android-Geräten wie dem T-Phone ist die Nutzung über den Kompass-/Orientierungsmodus wahrscheinlich möglich.
