@@ -14,11 +14,11 @@ Das kann für einfache Störungstests genutzt werden, ist aber keine echte Magne
 
 ## Android / T-Phone 3
 
-Auf Android-Geräten wie dem T-Phone ist die Nutzung über den Kompass-/Orientierungsmodus wahrscheinlich möglich.
+Auf Android-Geräten wie dem T-Phone ist die Nutzung über den Kompass-/Orientierungsmodus möglich.
 
 Echte Magnetometerwerte in µT über die Web-Magnetometer-API sind in Chrome für Android aktuell nicht zuverlässig verfügbar, da die API standardmäßig deaktiviert bzw. experimentell ist.
 
-T-Phone wurde noch nicht praktisch getestet.
+T-Phone wurde praktisch getestet, gleiche Messwerte wie iPhone.
 
 ## Start
 
