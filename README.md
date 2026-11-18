@@ -1,5 +1,7 @@
 # Magnetfeld-Messung iPhone
 
+🇩🇪 Deutsch · [🇬🇧 English](README_EN.md)
+
 Lokale Webapp für Magnetfeld-/Kompassmessung im Browser.
 
 ## Hinweis zur Messung
